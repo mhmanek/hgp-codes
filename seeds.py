@@ -9,13 +9,17 @@ def regular_seed(n_bits, wc=3, wr=4, seed=0):
     check_stubs = np.repeat(np.arange(r), wr)        # [0,0,0,0,1,1,1,1,...]
     # TODO shuffle one of them, zip them together, set H[check, bit] = 1
     rng = np.random.default_rng(seed)
-    rng.shuffle(bit_stubs)
-    edges = zip(check_stubs, bit_stubs)
-    H = np.zeros((r, n_bits), dtype=np.uint8)
-    for i in range(n_bits * wc):
-        H[check_stubs[i], bit_stubs[i]] = 1
-    # TODO if any edge repeats, abandon this attempt and retry with a new shuffle
-    # TODO before returning, assert the column sums are all wc and row sums all wr
+    while True:
+        rng.shuffle(bit_stubs)
+        H = np.zeros((r, n_bits), dtype=np.uint8)
+        for i in range(n_bits * wc):
+            H[check_stubs[i], bit_stubs[i]] += 1
+        if np.all(H <= 1):
+            break
+    assert np.sum(H, axis=0) == wc
+    assert np.all() # assert the column sums are all wc
+    assert np.all(np.sum(H, axis=1) == wr) # assert the row sums are all wr
+    return H
 
 def classical_distance(H):
     """Exact minimum distance by enumerating all 2^k codewords. Small k only!"""

@@ -1,0 +1,920 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hypergraph Product Codes — an interactive visualisation</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Lato:ital,wght@0,400;0,700;0,900;1,400&display=swap" rel="stylesheet">
+<style>
+:root{
+  /* palette sampled directly from Golowich's slide, on white rather than his cream */
+  --paper:#FFFFFF;
+  --ink:#000000;
+  --green:#37B375;   /* X-stabilizers */
+  --amber:#F5A604;   /* Z-stabilizers */
+  --red:#E20001;     /* X errors, and everything they light up */
+  --violet:#5B3FD6;  /* Z errors, and everything they light up */
+  --sky:#1BA1E2;     /* a classical codeword being pushed into a logical operator */
+  --rule:#D8D8BE;
+  --dim:#6B6B5A;
+  --sans:'Lato','Segoe UI',system-ui,-apple-system,Helvetica,Arial,sans-serif;
+  --serif:Georgia,'Times New Roman',serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{-webkit-text-size-adjust:100%}
+body{background:var(--paper);color:var(--ink);font-family:var(--sans);font-size:16px;line-height:1.6;
+  -webkit-font-smoothing:antialiased}
+main{max-width:1120px;margin:0 auto;padding:2.6rem 2rem 4rem}
+@media(max-width:760px){ main{padding:1.6rem 1rem 3rem} }
+
+header{margin-bottom:1.6rem;border-bottom:2px solid var(--ink);padding-bottom:1.1rem}
+h1{font-size:2rem;font-weight:900;letter-spacing:-.02em;line-height:1.1;margin-bottom:.5rem}
+.sub{font-size:1.05rem;max-width:70ch;color:#333}
+.sub em{font-style:italic}
+.byline{margin-top:.7rem;font-size:.82rem;color:var(--dim)}
+.byline a{color:var(--dim)}
+
+.bar{display:flex;flex-wrap:wrap;gap:.55rem .9rem;align-items:center;margin:1.4rem 0 1rem}
+.field{display:flex;align-items:center;gap:.4rem;font-size:.82rem;font-weight:700;
+  text-transform:uppercase;letter-spacing:.06em}
+.field .tag{font-family:var(--serif);font-style:italic;font-size:1.05rem;font-weight:400;text-transform:none;letter-spacing:0}
+select,button,input[type=number]{font-family:var(--sans);font-size:.86rem;color:var(--ink);background:#fff;
+  border:1.5px solid var(--ink);border-radius:2px;padding:.34rem .5rem;cursor:pointer}
+select{max-width:230px}
+input[type=number]{width:4.2rem;cursor:text;font-weight:700;text-align:right}
+input[type=number]:focus-visible{outline:2.5px solid var(--red);outline-offset:1.5px}
+button{font-weight:700}
+button:hover{background:var(--ink);color:var(--paper)}
+select:focus-visible,button:focus-visible{outline:2.5px solid var(--red);outline-offset:1.5px}
+.times{font-family:var(--serif);font-size:1.2rem}
+.tally{font-size:.8rem;color:var(--dim);font-weight:700}
+
+.stagewrap{position:relative}
+.stage{border:2px solid var(--ink);background:var(--paper);padding:.5rem;
+  overflow-x:auto;width:fit-content;max-width:100%;margin:0 auto}
+canvas{display:block;margin:0 auto}
+
+/* error-type chooser — lives outside .stage, which scrolls and would clip it */
+.pop{position:absolute;z-index:30;display:flex;gap:3px;padding:3px;background:#fff;
+  border:1.5px solid var(--ink);border-radius:2px;box-shadow:2px 3px 0 rgba(0,0,0,.22)}
+.pop[hidden]{display:none}
+.pop button{border:1.5px solid transparent;padding:.22rem .55rem;font-weight:900;font-size:.9rem;background:#fff}
+.pop button[data-t="X"]{color:var(--red)}
+.pop button[data-t="Z"]{color:var(--violet)}
+.pop button[data-t="none"]{color:var(--dim);font-weight:700}
+.pop button[data-t="X"]:hover{background:var(--red);color:#fff}
+.pop button[data-t="Z"]:hover{background:var(--violet);color:#fff}
+.pop button[data-t="none"]:hover{background:var(--dim);color:#fff}
+.pop .caret{position:absolute;width:8px;height:8px;background:#fff;
+  border-right:1.5px solid var(--ink);border-bottom:1.5px solid var(--ink);
+  left:50%;margin-left:-4px;transform:rotate(45deg)}
+.pop.below .caret{top:-5px;transform:rotate(225deg)}
+.pop.above .caret{bottom:-5px}
+
+.readout{border:1.5px solid var(--ink);background:#fff;padding:.75rem .95rem;margin-top:1rem;
+  font-size:.88rem;line-height:1.85}
+.readout .x{color:var(--red);font-weight:700}
+.readout .z{color:var(--violet);font-weight:700}
+.readout .g{color:#1E7A4C;font-weight:700}
+.readout .a{color:#9A6800;font-weight:700}
+.readout .s{color:#0F7FB4;font-weight:700}
+.readout .ok{color:#1E7A4C;font-weight:700}
+.readout .no{color:var(--red);font-weight:700}
+.readout b{font-weight:700}
+.readout .step{color:var(--dim)}
+.legend{display:flex;flex-wrap:wrap;gap:.5rem 1.15rem;align-items:center;margin-top:.85rem;font-size:.78rem}
+.legend span{display:flex;align-items:center;gap:.4em}
+.sw{width:13px;height:13px;display:inline-block;border:1.5px solid var(--ink)}
+.sw.rd{border-radius:50%;border:0}
+.note{margin-top:1.5rem;padding-top:1.1rem;border-top:1px solid var(--rule);font-size:.9rem;max-width:78ch;color:#2C2C22}
+.note h2{font-size:.82rem;font-weight:900;text-transform:uppercase;letter-spacing:.09em;margin-bottom:.45rem}
+.note p{margin-bottom:.6rem}
+.note code{font-family:var(--serif);font-style:italic;font-size:1.02em}
+footer{margin-top:2rem;padding-top:1rem;border-top:1px solid var(--rule);font-size:.78rem;color:var(--dim)}
+footer a{color:var(--dim)}
+</style>
+</head>
+<body>
+<main>
+
+<header>
+  <h1>Hypergraph Product Codes</h1>
+  <p class="sub"><b>Click any qubit and choose X or Z.</b> Its row lands somewhere on
+  C₁ and its column lands somewhere on C₂; the arcs there fire, and pulling that back into the grid is the
+  quantum syndrome.</p>
+  <p class="byline">Construction: Tillich &amp; Zémor, <a href="https://arxiv.org/abs/0903.0566" target="_blank" rel="noopener">arXiv:0903.0566</a>.
+  Layout after Louis Golowich, <em>Introduction to qLDPC Codes</em>, Simons Institute 2024.</p>
+</header>
+
+<div class="bar">
+  <span class="field"><span class="tag">C₁</span><select id="selA"></select></span>
+  <span class="times">⊗</span>
+  <span class="field"><span class="tag">C₂</span><select id="selB"></select></span>
+  <span class="field"><input type="number" id="randN" min="1" value="3"><button id="rand">Random errors</button></span>
+  <button id="clear">Clear</button>
+  <span class="tally" id="tally"></span>
+</div>
+
+<div class="stagewrap">
+  <div class="stage"><canvas id="cv"></canvas></div>
+  <div class="pop" id="pop" hidden>
+    <button data-t="X">X</button><button data-t="Z">Z</button><button data-t="none">none</button>
+    <i class="caret"></i>
+  </div>
+</div>
+
+<div class="readout" id="ro">Click a qubit in either outlined grid.</div>
+
+<div class="legend">
+  <span><i class="sw" style="background:#FFFFFF"></i> qubit</span>
+  <span><i class="sw" style="background:#37B375;border-color:#37B375"></i> X-stabilizer</span>
+  <span><i class="sw" style="background:#F5A604;border-color:#F5A604"></i> Z-stabilizer</span>
+  <span><i class="sw rd" style="background:#E20001"></i> X error</span>
+  <span><i class="sw rd" style="background:#5B3FD6"></i> Z error</span>
+  <span><i class="sw" style="background:#000"></i> a check on the axis</span>
+  <span><i class="sw" style="background:#FFFFFF"></i> a bit on the axis</span>
+</div>
+
+<script>
+'use strict';
+/* ---------- palette, sampled from the reference slide ---------- */
+const C = { paper:'#FFFFFF', ink:'#000000', green:'#37B375', amber:'#F5A604',
+            red:'#E20001', violet:'#5B3FD6', sky:'#1BA1E2', dim:'#6B6B5A' };
+const ECOL = { X:C.red, Z:C.violet };
+const $ = id => document.getElementById(id);
+
+/* ---------- the classical codes ---------- */
+function repH(n){ const H=[]; for(let i=0;i<n-1;i++){ const r=new Uint8Array(n); r[i]=1; r[i+1]=1; H.push(r);} return H; }
+function hamH(){ const n=7,H=[]; for(let b=0;b<3;b++){ const r=new Uint8Array(n);
+  for(let j=1;j<=n;j++) r[j-1]=(j>>b)&1; H.push(r);} return H; }
+const CODES = {
+  rep3:{ label:'Repetition, n=3  [3,1,3]', H:repH(3) },
+  rep4:{ label:'Repetition, n=4  [4,1,4]', H:repH(4) },
+  rep5:{ label:'Repetition, n=5  [5,1,5]', H:repH(5) },
+  ham7:{ label:'Hamming, n=7  [7,4,3]',    H:hamH()  }
+};
+
+/* ---------- the product ----------
+   rows : bits of C1 (n1)  then checks of C1 (m1)
+   cols : checks of C2 (m2) then bits of C2 (n2)
+     (bit i , check b) -> X-stabilizer      top-left
+     (bit i , bit j)   -> qubit  "vv"       top-right
+     (check a, check b)-> qubit  "cc"       bottom-left
+     (check a, bit j)  -> Z-stabilizer      bottom-right          */
+let A, B, n1, m1, n2, m2;
+function setCodes(a, b){
+  A = CODES[a].H; B = CODES[b].H;
+  n1 = A[0].length; m1 = A.length;
+  n2 = B[0].length; m2 = B.length;
+}
+
+/* ---------- state ----------
+   errs maps a qubit key ('vv:i:j' / 'cc:a:b') to its OWN error type, 'X' or 'Z'.
+   Storing the type per qubit is what lets X and Z coexist on the same lattice. */
+let errs = new Map();
+let pending = null;         /* qubit awaiting a type choice from the popover */
+let hover = null;
+let selStab = null;         /* {kind:'x',i,b} or {kind:'z',a,j} — a stabilizer being inspected */
+
+/* Which qubits does a stabilizer touch? Read straight off the two axes, never by
+   scanning a matrix: one arm is a row of C₂ (or C₁), the other a column of the other. */
+function stabSupport(s){
+  const out = [];
+  if(s.kind === 'x'){                                   /* X-stab at (bit i of C₁, check b of C₂) */
+    for(let j=0;j<n2;j++) if(B[s.b][j]) out.push({ key:'vv:'+s.i+':'+j, lab:'q('+s.i+','+j+')' });
+    for(let a=0;a<m1;a++) if(A[a][s.i]) out.push({ key:'cc:'+a+':'+s.b, lab:'Q('+a+','+s.b+')' });
+  } else {                                              /* Z-stab at (check a of C₁, bit j of C₂) */
+    for(let i=0;i<n1;i++) if(A[s.a][i]) out.push({ key:'vv:'+i+':'+s.j, lab:'q('+i+','+s.j+')' });
+    for(let b=0;b<m2;b++) if(B[b][s.j]) out.push({ key:'cc:'+s.a+':'+b, lab:'Q('+s.a+','+b+')' });
+  }
+  return out;
+}
+const sameStab = (p,q) => p && q && p.kind===q.kind &&
+  (p.kind==='x' ? (p.i===q.i && p.b===q.b) : (p.a===q.a && p.j===q.j));
+
+/* ---------- pushing a classical codeword into a logical operator ----------
+   Pick bits on one axis, then slide that pattern into a row (or column) of the
+   bit×bit block. A pattern c laid along row i overlaps the X-stabilizer at (i,b)
+   in Σⱼ H₂[b][j]·cⱼ = (H₂c)_b, so it commutes with every X-stabilizer exactly when
+   c is a codeword of C₂ — that is a Z-type logical. A C₁ codeword down a column is
+   the mirror image and gives an X-type one. */
+let logi = { axis:null, bits:new Set(), at:null };   /* axis 'C1'|'C2'; at = row or column */
+const qIndex = key => { const p = key.split(':');
+  return p[0]==='vv' ? (+p[1])*n2 + (+p[2]) : n1*n2 + (+p[1])*m2 + (+p[2]); };
+function logiKeys(){
+  if(!logi.bits.size || logi.at === null) return [];
+  const out = [];
+  if(logi.axis==='C2') logi.bits.forEach(j => out.push('vv:'+logi.at+':'+j));
+  else                 logi.bits.forEach(i => out.push('vv:'+i+':'+logi.at));
+  return out;
+}
+/* syndrome of the selected pattern in its own classical code */
+function axisSyndrome(){
+  const H = logi.axis==='C2' ? B : A, m = H.length;
+  const s = [];
+  for(let r=0;r<m;r++){ let v=0; logi.bits.forEach(k => v ^= H[r][k]); s.push(v); }
+  return s;
+}
+function rank2(rows){
+  const M = rows.map(r => Uint8Array.from(r)), cols = M.length ? M[0].length : 0;
+  let r = 0;
+  for(let c=0;c<cols && r<M.length;c++){
+    let p = -1; for(let i=r;i<M.length;i++) if(M[i][c]){ p=i; break; }
+    if(p < 0) continue;
+    const t = M[r]; M[r] = M[p]; M[p] = t;
+    for(let i=0;i<M.length;i++) if(i!==r && M[i][c])
+      for(let j=c;j<cols;j++) M[i][j] ^= M[r][j];
+    r++;
+  }
+  return r;
+}
+function stabMatrix(kind){
+  const N = n1*n2 + m1*m2, rows = [];
+  const push = s => { const v = new Uint8Array(N);
+    stabSupport(s).forEach(c => v[qIndex(c.key)] = 1); rows.push(v); };
+  if(kind==='x'){ for(let i=0;i<n1;i++) for(let b=0;b<m2;b++) push({kind:'x',i,b}); }
+  else          { for(let a=0;a<m1;a++) for(let j=0;j<n2;j++) push({kind:'z',a,j}); }
+  return rows;
+}
+/* A Z-type operator must commute with every X-stabilizer, and is only a genuine
+   logical if it is not itself a product of Z-stabilizers. X-type is the mirror. */
+function classify(keys, type){
+  const N = n1*n2 + m1*m2, v = new Uint8Array(N);
+  keys.forEach(k => v[qIndex(k)] = 1);
+  const against = type==='Z' ? stabMatrix('x') : stabMatrix('z');
+  let anticommuting = 0;
+  against.forEach(row => { let s = 0; for(let q=0;q<N;q++) s ^= row[q] & v[q]; if(s) anticommuting++; });
+  const own = type==='Z' ? stabMatrix('z') : stabMatrix('x');
+  const trivial = rank2(own.concat([v])) === rank2(own);
+  return { weight: keys.length, anticommuting, trivial,
+           logical: anticommuting === 0 && !trivial && keys.length > 0 };
+}
+
+/* merge an error type into a Map<key, 'X'|'Z'|'XZ'> so lit things can be coloured
+   by whichever kind of error lit them */
+function mark(map, key, t){
+  const cur = map.get(key);
+  map.set(key, !cur || cur === t ? t : 'XZ');
+}
+/* An X error is caught by Z-stabilizers, a Z error by X-stabilizers.
+   Each stabilizer's support, and hence the syndrome, is read straight off the two axes. */
+function analyse(){
+  const arcs1 = new Map(), arcs2 = new Map(), lit1 = new Map(), lit2 = new Map();
+  const countX = {}, countZ = {};
+  const bump = (o,k) => { o[k] = (o[k]||0) + 1; };
+  errs.forEach((t, k) => {
+    const p = k.split(':'), u = +p[1], v = +p[2];
+    if(p[0]==='vv'){
+      mark(lit1, u, t); mark(lit2, m2+v, t);            /* projects onto a BIT of each code */
+      if(t==='X'){                                       /* Z-stabs fire; story on C1: bit -> checks */
+        for(let a=0;a<m1;a++) if(A[a][u]){ mark(arcs1, u+'>'+a, t); bump(countZ,'z:'+a+':'+v); }
+      } else {                                           /* X-stabs fire; story on C2: bit -> checks */
+        for(let b=0;b<m2;b++) if(B[b][v]){ mark(arcs2, b+'>'+v, t); bump(countX,'x:'+u+':'+b); }
+      }
+    } else {
+      mark(lit1, n1+u, t); mark(lit2, v, t);             /* projects onto a CHECK of each code */
+      if(t==='X'){                                       /* Z-stabs fire; story on C2 BACKWARDS: check -> bits */
+        for(let j=0;j<n2;j++) if(B[v][j]){ mark(arcs2, v+'>'+j, t); bump(countZ,'z:'+u+':'+j); }
+      } else {                                           /* X-stabs fire; story on C1 BACKWARDS: check -> bits */
+        for(let i=0;i<n1;i++) if(A[u][i]){ mark(arcs1, i+'>'+u, t); bump(countX,'x:'+i+':'+v); }
+      }
+    }
+  });
+  /* syndromes add mod 2 — a stabilizer touched an even number of times stays quiet */
+  const firedX = new Set(), firedZ = new Set();
+  Object.keys(countZ).forEach(k => { if(countZ[k]%2) firedZ.add(k); });
+  Object.keys(countX).forEach(k => { if(countX[k]%2) firedX.add(k); });
+  return { firedX, firedZ, arcs1, arcs2, lit1, lit2 };
+}
+/* colour for something lit by error type(s) t */
+function litColour(t){ return t === 'Z' ? C.violet : C.red; }
+
+/* ---------- geometry ---------- */
+let G = null;
+/* Give every arc on an axis its own bulge height, fanned from lowest to highest.
+   Heights depend only on geometry (never on which arcs are lit), so the picture
+   never reflows when an error is placed. Sorting by span keeps short arcs low and
+   long arcs high, which reads naturally; the skew varies the curve shape too, so
+   two arcs with adjacent heights still separate visually. */
+function spreadHeights(list){
+  if(!list.length) return;
+  const order = list.slice().sort((p, q) => p.span - q.span || p.u - q.u || p.v - q.v);
+  const lo = 22, hi = G.maxBulge, n = order.length;
+  order.forEach((p, r) => {
+    p.h = n === 1 ? (lo + hi) / 2 : lo + (hi - lo) * (r / (n - 1));
+    p.skew = 0.18 + ((r % 3) - 1) * 0.055;
+  });
+}
+function layout(){
+  /* measure from <main>, not from .stage — the stage is width:fit-content, so sizing the
+     canvas from it would feed the canvas its own width and collapse both */
+  const mEl = document.querySelector('main'), mcs = getComputedStyle(mEl);
+  const inner = mEl.clientWidth - parseFloat(mcs.paddingLeft) - parseFloat(mcs.paddingRight);
+  const cvW = Math.max(360, inner - 22);
+  const cols = m2 + n2, rows = n1 + m1;
+  /* LEFTLBL / TOPLBL are label gutters that the arcs are forbidden to enter, so the
+     axis captions never sit underneath the Tanner arcs. */
+  /* SGAP must clear the block captions ("X-stabilizers" etc.) that sit between the
+     axis strip and the grid, or they collide with the strip cells */
+  const ARC = 150, STRIP = 24, SGAP = 38, BG = 48, PAD = 16, LEFTLBL = 46, TOPLBL = 50;
+  const availW = cvW - ARC - STRIP - SGAP - BG - PAD*2 - LEFTLBL;
+  const capH = Math.max(420, window.innerHeight * 0.80);
+  const availH = capH - ARC - STRIP - SGAP - BG - PAD*2 - TOPLBL;
+  const cs = Math.max(15, Math.min(74, Math.floor(Math.min(availW/cols, availH/rows))));
+  const X0 = PAD + LEFTLBL + ARC + STRIP + SGAP;
+  const Y0 = PAD + TOPLBL + ARC + STRIP + SGAP;
+  const gridW = cols*cs + BG, gridH = rows*cs + BG;
+  G = { cs, BG, ARC, STRIP, SGAP, PAD, LEFTLBL, TOPLBL, X0, Y0, cols, rows,
+        stripX: X0 - SGAP, stripY: Y0 - SGAP,           /* right/bottom edge of each strip */
+        maxBulge: ARC - 6,
+        w: X0 + gridW + PAD, h: Y0 + gridH + PAD + 22 };
+  return G;
+}
+const colX = c => c < m2 ? G.X0 + c*G.cs : G.X0 + m2*G.cs + G.BG + (c-m2)*G.cs;
+const rowY = r => r < n1 ? G.Y0 + r*G.cs : G.Y0 + n1*G.cs + G.BG + (r-n1)*G.cs;
+function colAt(px){
+  let d = px - G.X0;
+  if(d >= 0 && d < m2*G.cs) return Math.floor(d/G.cs);
+  d = px - (G.X0 + m2*G.cs + G.BG);
+  if(d >= 0 && d < n2*G.cs) return m2 + Math.floor(d/G.cs);
+  return -1;
+}
+function rowAt(py){
+  let d = py - G.Y0;
+  if(d >= 0 && d < n1*G.cs) return Math.floor(d/G.cs);
+  d = py - (G.Y0 + n1*G.cs + G.BG);
+  if(d >= 0 && d < m1*G.cs) return n1 + Math.floor(d/G.cs);
+  return -1;
+}
+function cellOf(kind,u,v){
+  return kind==='vv' ? { r:u, c:m2+v } : { r:n1+u, c:v };
+}
+
+/* ---------- drawing ---------- */
+function sans(ctx,s,col,w){ ctx.font=(w||400)+' '+s+'px Lato, "Segoe UI", system-ui, sans-serif'; ctx.fillStyle=col; }
+function serifIt(ctx,s,col){ ctx.font='italic '+s+'px Georgia, "Times New Roman", serif'; ctx.fillStyle=col; }
+function draw(){
+  const cv = $('cv'); layout();
+  const dpr = window.devicePixelRatio || 1;
+  cv.style.width = G.w+'px'; cv.style.height = G.h+'px';
+  cv.width = Math.round(G.w*dpr); cv.height = Math.round(G.h*dpr);
+  const ctx = cv.getContext('2d');
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  ctx.fillStyle = C.paper; ctx.fillRect(0,0,G.w,G.h);
+  const cs = G.cs, S = analyse();
+  /* qubits touched by the stabilizer currently being inspected */
+  const sup = selStab ? stabSupport(selStab) : null;
+  const supSet = sup ? new Set(sup.map(c => c.key)) : null;
+  const supColour = selStab && selStab.kind==='x' ? 'rgba(55,179,117,.55)' : 'rgba(245,166,4,.62)';
+  const logiSet = new Set(logiKeys());
+  /* the Tanner edges that GENERATE that support, plus the two axis cells they fan out from.
+     X-stab (i,b): C₁'s bit i reaches its checks, C₂'s check b reaches its bits — and vice versa
+     for a Z-stab. Same lookups stabSupport() uses, so the two can never disagree. */
+  const stabColour = selStab && selStab.kind==='x' ? C.green : C.amber;
+  let sArc1 = null, sArc2 = null, sLit1 = null, sLit2 = null;
+  if(selStab){
+    sArc1 = new Set(); sArc2 = new Set(); sLit1 = new Set(); sLit2 = new Set();
+    if(selStab.kind === 'x'){
+      const i = selStab.i, b = selStab.b;
+      for(let a=0;a<m1;a++) if(A[a][i]) sArc1.add(i+'>'+a);
+      for(let j=0;j<n2;j++) if(B[b][j]) sArc2.add(b+'>'+j);
+      sLit1.add(i); sLit2.add(b);                      /* bit i of C₁, check b of C₂ */
+    } else {
+      const a = selStab.a, j = selStab.j;
+      for(let i=0;i<n1;i++) if(A[a][i]) sArc1.add(i+'>'+a);
+      for(let b=0;b<m2;b++) if(B[b][j]) sArc2.add(b+'>'+j);
+      sLit1.add(n1+a); sLit2.add(m2+j);                /* check a of C₁, bit j of C₂ */
+    }
+  }
+
+  /* ===== axis arcs (drawn first, under everything) ===== */
+  const arcs1 = [], arcs2 = [];
+  for(let a=0;a<m1;a++) for(let i=0;i<n1;i++) if(A[a][i])
+    arcs1.push({ kind:'1', u:i, v:a, span:Math.abs(rowY(n1+a)-rowY(i)) });
+  for(let b=0;b<m2;b++) for(let j=0;j<n2;j++) if(B[b][j])
+    arcs2.push({ kind:'2', u:b, v:j, span:Math.abs(colX(m2+j)-colX(b)) });
+  spreadHeights(arcs1); spreadHeights(arcs2);
+  function arc(p, colour){
+    ctx.strokeStyle = colour || C.ink;
+    ctx.globalAlpha = colour ? 1 : .5;
+    ctx.lineWidth = colour ? 2.4 : 1;
+    const s = p.skew, t = 1 - s;
+    ctx.beginPath();
+    if(p.kind==='1'){                                  /* C1: bit u -> check v, bulge left */
+      const x = G.stripX - G.STRIP, y1 = rowY(p.u)+cs/2, y2 = rowY(n1+p.v)+cs/2;
+      ctx.moveTo(x,y1);
+      ctx.bezierCurveTo(x-p.h, y1+(y2-y1)*s, x-p.h, y1+(y2-y1)*t, x, y2);
+    } else {                                           /* C2: check u -> bit v, bulge up */
+      const y = G.stripY - G.STRIP, x1 = colX(p.u)+cs/2, x2 = colX(m2+p.v)+cs/2;
+      ctx.moveTo(x1,y);
+      ctx.bezierCurveTo(x1+(x2-x1)*s, y-p.h, x1+(x2-x1)*t, y-p.h, x2, y);
+    }
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+  }
+  const allArcs = arcs1.concat(arcs2);
+  const litOf   = p => p.kind==='1' ? S.arcs1.get(p.u+'>'+p.v) : S.arcs2.get(p.u+'>'+p.v);
+  const stabOf  = p => selStab && (p.kind==='1' ? sArc1.has(p.u+'>'+p.v) : sArc2.has(p.u+'>'+p.v));
+  /* dormant, then stabilizer-lit, then error-lit — each layer sits on top of the last */
+  allArcs.forEach(p => { if(!litOf(p) && !stabOf(p)) arc(p, null); });
+  allArcs.forEach(p => { if(!litOf(p) &&  stabOf(p)) arc(p, stabColour); });
+  allArcs.forEach(p => { const t = litOf(p); if(t) arc(p, litColour(t)); });
+  ctx.lineWidth = 1;
+
+  /* ===== axis strips: checks are solid black, bits are outlined ===== */
+  for(let r=0;r<G.rows;r++){                           /* C1 — vertical, left */
+    const isBit = r < n1, y = rowY(r), t = S.lit1.get(r), st = sLit1 && sLit1.has(r);
+    const sk = logi.axis==='C1' && isBit && logi.bits.has(r);
+    const x = G.stripX - G.STRIP;
+    ctx.fillStyle   = t ? litColour(t) : st ? stabColour : sk ? C.sky : (isBit ? C.paper : C.ink);
+    ctx.strokeStyle = t ? litColour(t) : st ? stabColour : sk ? C.sky : C.ink;
+    ctx.lineWidth = 1.6;
+    ctx.beginPath(); ctx.rect(x+1, y+3, G.STRIP-2, cs-6); ctx.fill(); ctx.stroke();
+  }
+  for(let c=0;c<G.cols;c++){                           /* C2 — horizontal, top */
+    const isCheck = c < m2, x = colX(c), t = S.lit2.get(c), st = sLit2 && sLit2.has(c);
+    const sk = logi.axis==='C2' && !isCheck && logi.bits.has(c-m2);
+    const y = G.stripY - G.STRIP;
+    ctx.fillStyle   = t ? litColour(t) : st ? stabColour : sk ? C.sky : (isCheck ? C.ink : C.paper);
+    ctx.strokeStyle = t ? litColour(t) : st ? stabColour : sk ? C.sky : C.ink;
+    ctx.lineWidth = 1.6;
+    ctx.beginPath(); ctx.rect(x+3, y+1, cs-6, G.STRIP-2); ctx.fill(); ctx.stroke();
+  }
+  ctx.lineWidth = 1;
+
+  /* ===== axis captions, in their reserved gutters ===== */
+  sans(ctx, 12, C.ink, 700); ctx.textAlign='center';
+  ctx.fillText('checks  '+m2, colX(0) + m2*cs/2, G.PAD + 38);
+  ctx.fillText('bits  '+n2,   colX(m2) + n2*cs/2, G.PAD + 38);
+  serifIt(ctx, 19, C.ink);
+  ctx.fillText('C₂', colX(0) + (G.cols*cs+G.BG)/2, G.PAD + 17);
+  ctx.save();
+  ctx.translate(G.PAD + G.LEFTLBL - 6, 0); ctx.rotate(-Math.PI/2);
+  sans(ctx, 12, C.ink, 700); ctx.textAlign='center';
+  ctx.fillText('bits  '+n1,   -(rowY(0) + n1*cs/2), 0);
+  ctx.fillText('checks  '+m1, -(rowY(n1) + m1*cs/2), 0);
+  ctx.restore();
+  ctx.save();
+  ctx.translate(G.PAD + 16, rowY(0) + (G.rows*cs+G.BG)/2); ctx.rotate(-Math.PI/2);
+  serifIt(ctx, 19, C.ink); ctx.textAlign='center'; ctx.fillText('C₁', 0, 0);
+  ctx.restore();
+
+  /* ===== the four blocks ===== */
+  /* qubits: a contiguous grid of cream cells with heavy black rules */
+  function qubitBlock(r0,rN,c0,cN,kind){
+    const x = colX(c0), y = rowY(r0), w = cN*cs, h = rN*cs;
+    ctx.fillStyle = C.paper; ctx.fillRect(x,y,w,h);
+    for(let r=0;r<rN;r++) for(let c=0;c<cN;c++){
+      const t = errs.get(kind+':'+r+':'+c);
+      const cx = x+c*cs, cy = y+r*cs;
+      if(supSet && supSet.has(kind+':'+r+':'+c)){       /* in the inspected stabilizer's support */
+        ctx.fillStyle = supColour; ctx.fillRect(cx,cy,cs,cs);
+      }
+      if(logiSet.has(kind+':'+r+':'+c)){                /* carries the pushed codeword */
+        ctx.fillStyle = 'rgba(27,161,226,.42)'; ctx.fillRect(cx,cy,cs,cs);
+      }
+      if(t){ ctx.fillStyle = t==='X' ? 'rgba(226,0,1,.14)' : 'rgba(91,63,214,.14)';
+             ctx.fillRect(cx,cy,cs,cs); }
+      if(hover && hover.type==='qubit' && hover.kind===kind && hover.u===r && hover.v===c){
+        ctx.fillStyle = 'rgba(0,0,0,.07)'; ctx.fillRect(cx,cy,cs,cs);
+      }
+    }
+    ctx.strokeStyle = C.ink; ctx.lineWidth = 1.8;
+    for(let r=0;r<=rN;r++){ ctx.beginPath(); ctx.moveTo(x, y+r*cs); ctx.lineTo(x+w, y+r*cs); ctx.stroke(); }
+    for(let c=0;c<=cN;c++){ ctx.beginPath(); ctx.moveTo(x+c*cs, y); ctx.lineTo(x+c*cs, y+h); ctx.stroke(); }
+    ctx.lineWidth = 1;
+    for(let r=0;r<rN;r++) for(let c=0;c<cN;c++){
+      const t = errs.get(kind+':'+r+':'+c);
+      const isPending = pending && pending.kind===kind && pending.u===r && pending.v===c;
+      const cx = x+c*cs+cs/2, cy = y+r*cs+cs/2;
+      if(t){
+        /* a filled disc carrying the letter — a bare "×" glyph reads as an X error even
+           when the error is a Z, and a square would be confusable with a stabilizer tile */
+        ctx.beginPath(); ctx.arc(cx, cy, cs*0.31, 0, Math.PI*2);
+        ctx.fillStyle = ECOL[t]; ctx.fill();
+        sans(ctx, Math.max(11, cs*0.40), '#fff', 900); ctx.textAlign='center';
+        ctx.fillText(t, cx, cy + cs*0.145);
+      }
+      if(isPending){
+        ctx.beginPath(); ctx.arc(cx, cy, cs*0.42, 0, Math.PI*2);
+        ctx.strokeStyle = C.ink; ctx.lineWidth = 2; ctx.setLineDash([3,3]);
+        ctx.stroke(); ctx.setLineDash([]); ctx.lineWidth = 1;
+      }
+    }
+  }
+  /* stabilizers: separated solid tiles, no outline — exactly as in the reference */
+  function stabBlock(r0,rN,c0,cN,kind){
+    const base = kind==='x' ? C.green : C.amber;
+    const fired = kind==='x' ? S.firedX : S.firedZ;
+    /* an X-stabilizer can only be fired by a Z error, and vice versa */
+    const firedColour = kind==='x' ? C.violet : C.red;
+    const inset = Math.max(1.5, cs*0.085);
+    for(let r=0;r<rN;r++) for(let c=0;c<cN;c++){
+      const on = fired.has(kind+':'+r+':'+c);
+      /* r,c are already the stabilizer's own indices: (i,b) for X, (a,j) for Z */
+      const isSel = selStab && selStab.kind===kind &&
+        (kind==='x' ? (selStab.i===r && selStab.b===c) : (selStab.a===r && selStab.j===c));
+      const isHov = hover && hover.type==='stab' && hover.kind===kind &&
+        (kind==='x' ? (hover.i===r && hover.b===c) : (hover.a===r && hover.j===c));
+      const x = colX(c0+c)+inset, y = rowY(r0+r)+inset, s = cs-2*inset;
+      ctx.fillStyle = base;
+      ctx.fillRect(x,y,s,s);
+      if(isHov && !isSel){
+        ctx.strokeStyle = C.ink; ctx.lineWidth = 1.5;
+        ctx.strokeRect(x+.75, y+.75, s-1.5, s-1.5);
+        ctx.lineWidth = 1;
+      }
+      if(isSel){                                        /* inner rule, so a fired ring still reads */
+        ctx.strokeStyle = C.ink; ctx.lineWidth = 3.5;
+        ctx.strokeRect(x+1.75, y+1.75, s-3.5, s-3.5);
+        ctx.lineWidth = 1;
+      }
+      if(on){
+        ctx.strokeStyle = firedColour; ctx.lineWidth = 3;
+        ctx.strokeRect(x-1.5, y-1.5, s+3, s+3);
+        ctx.lineWidth = 1;
+      }
+    }
+  }
+  stabBlock(0, n1, 0, m2, 'x');            /* top-left   : X-stabilizers */
+  qubitBlock(0, n1, m2, n2, 'vv');         /* top-right  : bit × bit qubits */
+  qubitBlock(n1, m1, 0, m2, 'cc');         /* bottom-left: check × check qubits */
+  stabBlock(n1, m1, m2, n2, 'z');          /* bottom-right: Z-stabilizers */
+
+  /* ===== the "slide": dashed guides from the chosen axis bits into the target line ===== */
+  if(logiSet.size){
+    ctx.strokeStyle = C.sky; ctx.lineWidth = 2; ctx.setLineDash([5,4]); ctx.globalAlpha = .85;
+    if(logi.axis==='C2'){
+      logi.bits.forEach(j => {
+        const x = colX(m2+j) + cs/2;
+        ctx.beginPath(); ctx.moveTo(x, G.stripY); ctx.lineTo(x, rowY(logi.at) + cs/2); ctx.stroke();
+      });
+    } else {
+      logi.bits.forEach(i => {
+        const y = rowY(i) + cs/2;
+        ctx.beginPath(); ctx.moveTo(G.stripX, y); ctx.lineTo(colX(m2+logi.at) + cs/2, y); ctx.stroke();
+      });
+    }
+    ctx.setLineDash([]); ctx.globalAlpha = 1; ctx.lineWidth = 1;
+  }
+
+  /* ===== block labels ===== */
+  sans(ctx, 13, '#1E7A4C', 900); ctx.textAlign='center';
+  ctx.fillText('X-stabilizers', colX(0)+m2*cs/2, rowY(0)-10);
+  sans(ctx, 13, '#9A6800', 900);
+  ctx.fillText('Z-stabilizers', colX(m2)+n2*cs/2, rowY(n1)+m1*cs+20);
+  sans(ctx, 12.5, C.ink, 700); ctx.textAlign='left';
+  ctx.fillText('Qubits  bit × bit', colX(m2), rowY(0)-10);
+  ctx.textAlign='right';
+  ctx.fillText('Qubits  check × check', colX(0)+m2*cs, rowY(n1)+m1*cs+20);
+}
+
+/* ---------- readout ---------- */
+function report(){
+  const ro = $('ro');
+  const nX = [...errs.values()].filter(t=>t==='X').length;
+  const nZ = errs.size - nX;
+  $('tally').textContent = errs.size
+    ? errs.size+' error'+(errs.size>1?'s':'')+' · '+nX+' X, '+nZ+' Z' : '';
+  const lines = [];
+  if(logi.bits.size){
+    const isC2 = logi.axis==='C2';
+    const nb = isC2 ? n2 : n1;
+    const word = Array.from({length:nb}, (_,k) => logi.bits.has(k) ? '1' : '0').join('');
+    const syn = axisSyndrome(), isWord = syn.every(v => !v);
+    lines.push('<span class="s">'+logi.axis+' pattern</span> c = <b>'+word+'</b> (weight '+logi.bits.size+
+      ') · H'+(isC2?'₂':'₁')+'c = <b>'+syn.join('')+'</b> → '+
+      (isWord ? '<span class="ok">a codeword ✓</span>'
+              : '<span class="no">not a codeword</span>'));
+    if(logi.at === null){
+      lines.push('<span class="step">Now click any qubit in the bit×bit block to slide it '+
+        (isC2 ? 'down into that row' : 'across into that column')+'.</span>');
+    } else {
+      const keys = logiKeys(), type = isC2 ? 'Z' : 'X';
+      const v = classify(keys, type);
+      const labs = keys.map(k => { const p=k.split(':'); return 'q('+p[1]+','+p[2]+')'; });
+      lines.push('slid into '+(isC2 ? 'row '+logi.at : 'column '+logi.at)+
+        ' → <span class="s">'+type+'-type operator</span> of weight <b>'+v.weight+'</b>: '+labs.join(' '));
+      lines.push(v.anticommuting === 0
+        ? '<span class="ok">commutes with all '+(type==='Z'?'X':'Z')+'-stabilizers ✓</span>'
+        : '<span class="no">anticommutes with '+v.anticommuting+' '+(type==='Z'?'X':'Z')+
+          '-stabilizer'+(v.anticommuting>1?'s':'')+' ✗</span> <span class="step">— detectable, so not a logical operator</span>');
+      if(v.anticommuting === 0) lines.push(v.trivial
+        ? '<span class="no">but it is a product of '+type+'-stabilizers</span> <span class="step">— trivial, acts as identity on the logical qubits</span>'
+        : '<span class="ok">and it is not a product of '+type+'-stabilizers → a genuine logical operator</span>');
+    }
+  }
+  if(selStab){
+    const sup = stabSupport(selStab), isX = selStab.kind==='x';
+    const at = isX ? '(bit '+selStab.i+' of C₁, check '+selStab.b+' of C₂)'
+                   : '(check '+selStab.a+' of C₁, bit '+selStab.j+' of C₂)';
+    const arms = isX
+      ? 'C₂\'s check '+selStab.b+' picks the bits along row '+selStab.i+'; C₁\'s bit '+selStab.i+
+        ' picks the checks down column '+selStab.b
+      : 'C₁\'s check '+selStab.a+' picks the bits up column '+selStab.j+'; C₂\'s bit '+selStab.j+
+        ' picks the checks along row '+selStab.a;
+    lines.push('<span class="'+(isX?'g':'a')+'">'+(isX?'X':'Z')+'-stabilizer</span> at '+at+
+      ' — <b>weight '+sup.length+'</b>: '+sup.map(c=>c.lab).join(' ')+
+      '<br><span class="step">'+arms+'</span>');
+  }
+  if(!errs.size){
+    if(!selStab && !logi.bits.size)
+      lines.push('Click a qubit and choose <span class="x">X</span> or <span class="z">Z</span> to place an error. '+
+        'Click a <span class="g">green</span> or <span class="a">amber</span> tile to see the qubits that '+
+        'stabilizer touches. Click <span class="s">bits on either axis</span> to build a classical codeword, '+
+        'then slide it in to get a logical operator.');
+    else if(selStab)
+      lines.push('<span class="step">Click the tile again to deselect, or click a qubit to place an error.</span>');
+    ro.innerHTML = lines.join('<br>');
+    return;
+  }
+  const S = analyse();
+  errs.forEach((t, k) => {
+    const p = k.split(':'), u=+p[1], v=+p[2];
+    const cl = t==='X' ? 'x' : 'z';
+    if(p[0]==='vv'){
+      const axis = t==='X' ? 'C₁' : 'C₂';
+      const src  = t==='X' ? 'bit '+u : 'bit '+v;
+      const dir  = t==='X' ? 'down its column' : 'along its row';
+      lines.push('<span class="'+cl+'">'+t+'</span> on the bit×bit qubit at (row '+u+', col '+v+') '+
+        '<span class="step">push →</span> <b>bit '+u+'</b> of C₁ and <b>bit '+v+'</b> of C₂ '+
+        '<span class="step">fire '+axis+'\'s arcs from '+src+' →</span> pull back '+dir);
+    } else {
+      const axis = t==='X' ? 'C₂' : 'C₁';
+      lines.push('<span class="'+cl+'">'+t+'</span> on the check×check qubit at (row '+u+', col '+v+') '+
+        '<span class="step">push →</span> <b>check '+u+'</b> of C₁ and <b>check '+v+'</b> of C₂ '+
+        '<span class="step">'+axis+'\'s arcs run backwards here (check → bits) — the transpose code</span>');
+    }
+  });
+  const nm = s => [...s].map(k => { const p=k.split(':'); return '('+p[1]+','+p[2]+')'; }).join(' ');
+  const fires = [];
+  if(S.firedZ.size || nX) fires.push('<span class="x">'+S.firedZ.size+'</span> <span class="a">Z-stabilizer'+
+    (S.firedZ.size===1?'</span> fires':'s</span> fire') + (S.firedZ.size?' '+nm(S.firedZ):'') +
+    ' <span class="step">← from the X errors</span>');
+  if(S.firedX.size || nZ) fires.push('<span class="z">'+S.firedX.size+'</span> <span class="g">X-stabilizer'+
+    (S.firedX.size===1?'</span> fires':'s</span> fire') + (S.firedX.size?' '+nm(S.firedX):'') +
+    ' <span class="step">← from the Z errors</span>');
+  ro.innerHTML = lines.join('<br>') + '<br>' + fires.join('<br>') +
+    (errs.size>1 ? '<br><span class="step">Syndromes add mod 2 — a stabilizer touched twice goes quiet.</span>' : '');
+}
+function redraw(){ draw(); report(); }
+
+/* ---------- the error-type popover ---------- */
+const pop = $('pop');
+function hidePop(){ if(pending){ pending = null; pop.hidden = true; draw(); } else pop.hidden = true; }
+function showPop(q){
+  pending = q;
+  const cv = $('cv'), cell = cellOf(q.kind, q.u, q.v);
+  pop.hidden = false;                                   /* must be laid out before measuring */
+  const ph = pop.offsetHeight, pw = pop.offsetWidth;
+  /* Measure from rect deltas rather than offsetLeft chains: .stage is unpositioned, so the
+     canvas's offsetParent is .stagewrap, and adding stage.offsetLeft double-counted the
+     margin:auto centring. Rect deltas also absorb the stage's horizontal scroll for free. */
+  const wrap = pop.offsetParent || cv.parentElement.parentElement;
+  const wr = wrap.getBoundingClientRect(), cr = cv.getBoundingClientRect();
+  const left = (cr.left - wr.left) + colX(cell.c) + G.cs/2;
+  const cellTop = (cr.top - wr.top) + rowY(cell.r);
+  const above = cellTop - ph - 10 >= 0;
+  pop.classList.toggle('above', above);
+  pop.classList.toggle('below', !above);
+  pop.style.left = Math.round(Math.min(wr.width - pw/2 - 2, Math.max(pw/2 + 2, left))) + 'px';
+  pop.style.top  = Math.round(above ? cellTop - ph - 10 : cellTop + G.cs + 10) + 'px';
+  pop.style.transform = 'translateX(-50%)';
+  draw();
+}
+pop.addEventListener('click', ev => {
+  const b = ev.target.closest('button'); if(!b || !pending) return;
+  const k = pending.kind+':'+pending.u+':'+pending.v;
+  if(b.dataset.t === 'none') errs.delete(k); else errs.set(k, b.dataset.t);
+  pending = null; pop.hidden = true;
+  redraw();
+});
+document.addEventListener('keydown', ev => { if(ev.key === 'Escape') hidePop(); });
+
+/* ---------- interaction ---------- */
+const cv = $('cv');
+function pick(ev){
+  const r = cv.getBoundingClientRect();
+  const px = ev.clientX - r.left, py = ev.clientY - r.top;
+  /* the two axis strips, where classical codewords get selected */
+  if(px >= G.stripX - G.STRIP && px <= G.stripX){
+    const i = rowAt(py);
+    if(i >= 0) return { type:'strip', axis:'C1', idx:i, isBit: i < n1 };
+  }
+  if(py >= G.stripY - G.STRIP && py <= G.stripY){
+    const j = colAt(px);
+    if(j >= 0) return { type:'strip', axis:'C2', idx:j, isBit: j >= m2 };
+  }
+  const c = colAt(px), rw = rowAt(py);
+  if(c < 0 || rw < 0) return null;
+  const bitRow = rw < n1, checkCol = c < m2;
+  if(bitRow && !checkCol) return { type:'qubit', kind:'vv', u:rw,    v:c-m2 };
+  if(!bitRow && checkCol) return { type:'qubit', kind:'cc', u:rw-n1, v:c    };
+  if(bitRow &&  checkCol) return { type:'stab',  kind:'x',  i:rw,    b:c    };
+  return                         { type:'stab',  kind:'z',  a:rw-n1, j:c-m2 };
+}
+cv.addEventListener('click', ev => {
+  const q = pick(ev);
+  if(!q){ hidePop(); selStab = null; redraw(); return; }
+  if(q.type === 'strip'){
+    if(!q.isBit) return;                                /* only bits carry codewords */
+    const k = q.axis==='C2' ? q.idx - m2 : q.idx;       /* strip index -> bit index */
+    if(logi.axis !== q.axis){ logi = { axis:q.axis, bits:new Set(), at:null }; }
+    if(logi.bits.has(k)) logi.bits.delete(k); else logi.bits.add(k);
+    if(!logi.bits.size) logi = { axis:null, bits:new Set(), at:null };
+    else logi.at = null;                                /* re-choose where to slide it */
+    selStab = null; hidePop(); redraw(); return;
+  }
+  if(q.type === 'stab'){
+    selStab = sameStab(selStab, q) ? null : q;          /* click again to deselect */
+    if(pending){ pending = null; pop.hidden = true; }
+    redraw(); return;
+  }
+  /* with a pattern armed, a qubit click slides it in rather than placing an error */
+  if(logi.bits.size && q.kind === 'vv'){
+    logi.at = logi.axis==='C2' ? q.u : q.v;
+    hidePop(); redraw(); return;
+  }
+  if(pending && pending.kind===q.kind && pending.u===q.u && pending.v===q.v){ hidePop(); return; }
+  showPop(q);
+});
+document.addEventListener('click', ev => {
+  if(pending && !ev.target.closest('#pop') && !ev.target.closest('#cv')) hidePop();
+});
+cv.addEventListener('mousemove', ev => {
+  const p = pick(ev);
+  const id = o => o ? JSON.stringify(o) : '';           /* picks now have differing shapes */
+  const same = id(p) === id(hover);
+  hover = p; cv.style.cursor = p ? 'pointer' : 'default';
+  if(!same) draw();
+});
+cv.addEventListener('mouseleave', () => { if(hover){ hover=null; draw(); } });
+
+$('clear').addEventListener('click', () => { errs.clear(); selStab = null; logi = { axis:null, bits:new Set(), at:null }; hidePop(); redraw(); });
+$('rand').addEventListener('click', () => {
+  errs.clear(); hidePop();
+  const nv = n1*n2, tot = nv + m1*m2;
+  let want = parseInt($('randN').value, 10);
+  if(!isFinite(want) || want < 1) want = 1;
+  want = Math.min(want, tot);
+  $('randN').value = want;                              /* show the clamp back to the user */
+  /* sample distinct qubits — picking indices at random would collide and silently
+     place fewer errors than were asked for */
+  const idx = Array.from({length:tot}, (_,i) => i);
+  for(let i = tot-1; i > 0; i--){
+    const j = Math.floor(Math.random()*(i+1));
+    const t = idx[i]; idx[i] = idx[j]; idx[j] = t;
+  }
+  for(let t = 0; t < want; t++){
+    const q = idx[t];
+    const key = q < nv ? 'vv:'+Math.floor(q/n2)+':'+(q%n2)
+                       : 'cc:'+Math.floor((q-nv)/m2)+':'+((q-nv)%m2);
+    errs.set(key, Math.random() < 0.5 ? 'X' : 'Z');     /* mixed types on purpose */
+  }
+  redraw();
+});
+function fillSel(sel, def){
+  Object.keys(CODES).forEach(k => {
+    const o = document.createElement('option'); o.value=k; o.textContent=CODES[k].label; sel.appendChild(o);
+  });
+  sel.value = def;
+}
+fillSel($('selA'),'rep3'); fillSel($('selB'),'rep3');
+function rebuild(){
+  setCodes($('selA').value, $('selB').value);
+  const tot = n1*n2 + m1*m2;
+  $('randN').max = tot;
+  if(+$('randN').value > tot) $('randN').value = tot;
+  errs.clear(); pending=null; pop.hidden=true; hover=null; selStab=null;
+  logi = { axis:null, bits:new Set(), at:null };
+  redraw();
+}
+$('selA').addEventListener('change', rebuild);
+$('selB').addEventListener('change', rebuild);
+window.addEventListener('resize', () => {
+  clearTimeout(window.__t);
+  window.__t = setTimeout(() => { pop.hidden = true; pending = null; redraw(); }, 120);
+});
+$('cv').parentElement.addEventListener('scroll', () => { if(pending) showPop(pending); });
+if(document.fonts && document.fonts.ready) document.fonts.ready.then(() => redraw());
+
+/* ---------- self-check: the axis story must equal the matrices ---------- */
+window.check = function(){
+  let bad = 0, tested = 0, mixedBad = 0, supBad = 0, edgeBad = 0, logiBad = 0, sizes = new Set();
+  const saveA = $('selA').value, saveB = $('selB').value;
+  Object.keys(CODES).forEach(ka => Object.keys(CODES).forEach(kb => {
+    setCodes(ka, kb);
+    const N = n1*n2 + m1*m2;
+    const keyOf = q => q < n1*n2 ? 'vv:'+Math.floor(q/n2)+':'+(q%n2)
+                                 : 'cc:'+Math.floor((q-n1*n2)/m2)+':'+((q-n1*n2)%m2);
+    for(let q=0;q<N;q++) ['X','Z'].forEach(t => {
+      errs = new Map([[keyOf(q), t]]);
+      const S = analyse();
+      const got = t==='X' ? S.firedZ : S.firedX;
+      const want = new Set();
+      if(t==='X'){                       /* Z-stab (a,j) holds vv(i,j) if A[a][i], cc(a,b) if B[b][j] */
+        for(let a=0;a<m1;a++) for(let j=0;j<n2;j++){
+          let hit=false;
+          if(q < n1*n2){ const i=Math.floor(q/n2), jj=q%n2; hit = (jj===j && A[a][i]===1); }
+          else { const s=q-n1*n2, aa=Math.floor(s/m2), b=s%m2; hit = (aa===a && B[b][j]===1); }
+          if(hit) want.add('z:'+a+':'+j);
+        }
+      } else {                           /* X-stab (i,b) holds vv(i,j) if B[b][j], cc(a,b) if A[a][i] */
+        for(let i=0;i<n1;i++) for(let b=0;b<m2;b++){
+          let hit=false;
+          if(q < n1*n2){ const ii=Math.floor(q/n2), j=q%n2; hit = (ii===i && B[b][j]===1); }
+          else { const s=q-n1*n2, a=Math.floor(s/m2), bb=s%m2; hit = (bb===b && A[a][i]===1); }
+          if(hit) want.add('x:'+i+':'+b);
+        }
+      }
+      tested++;
+      if(got.size!==want.size || [...got].some(x=>!want.has(x))) bad++;
+      const other = t==='X' ? S.firedX : S.firedZ;
+      if(other.size !== 0) bad++;
+      /* the click-to-inspect path (stabSupport) must agree with the syndrome path:
+         a qubit lies in a stabilizer's support exactly when an error there fires it */
+      const viaSup = new Set();
+      if(t==='X'){ for(let a=0;a<m1;a++) for(let j=0;j<n2;j++)
+        if(stabSupport({kind:'z',a,j}).some(c=>c.key===keyOf(q))) viaSup.add('z:'+a+':'+j); }
+      else { for(let i=0;i<n1;i++) for(let b=0;b<m2;b++)
+        if(stabSupport({kind:'x',i,b}).some(c=>c.key===keyOf(q))) viaSup.add('x:'+i+':'+b); }
+      if(viaSup.size!==got.size || [...viaSup].some(x=>!got.has(x))) supBad++;
+    });
+    /* MIXED types must not interfere: X on p and Z on q together = the union of them apart */
+    for(let p=0;p<N;p+=Math.max(1,Math.floor(N/7))) for(let q=0;q<N;q+=Math.max(1,Math.floor(N/5))){
+      if(keyOf(p) === keyOf(q)) continue;
+      errs = new Map([[keyOf(p),'X']]);            const a1 = analyse();
+      errs = new Map([[keyOf(q),'Z']]);            const a2 = analyse();
+      errs = new Map([[keyOf(p),'X'],[keyOf(q),'Z']]); const both = analyse();
+      const eq = (s,t) => s.size===t.size && [...s].every(x=>t.has(x));
+      if(!eq(both.firedZ, a1.firedZ) || !eq(both.firedX, a2.firedX)) mixedBad++;
+      tested++;
+    }
+    /* every Tanner edge lit by a selected stabilizer must yield exactly one support qubit,
+       so the highlighted edges and the highlighted qubits can never fall out of step */
+    for(let i=0;i<n1;i++) for(let b=0;b<m2;b++){
+      let e = 0;
+      for(let a=0;a<m1;a++) if(A[a][i]) e++;
+      for(let j=0;j<n2;j++) if(B[b][j]) e++;
+      if(e !== stabSupport({kind:'x',i,b}).length) edgeBad++;
+      tested++;
+    }
+    for(let a=0;a<m1;a++) for(let j=0;j<n2;j++){
+      let e = 0;
+      for(let i=0;i<n1;i++) if(A[a][i]) e++;
+      for(let b=0;b<m2;b++) if(B[b][j]) e++;
+      if(e !== stabSupport({kind:'z',a,j}).length) edgeBad++;
+      tested++;
+    }
+    /* pushing a C₂ pattern into a row must commute with every X-stabilizer exactly when
+       the pattern is a codeword — and the whole family must span precisely K logical
+       classes on top of the Z-stabilizer group */
+    (function(){
+      const HX = stabMatrix('x'), HZ = stabMatrix('z'), NQ = n1*n2 + m1*m2;
+      const baseZ = rank2(HZ), found = HZ.slice();
+      let seenNonWords = 0;
+      for(let mask=1; mask<(1<<n2); mask++){
+        const c = []; for(let j=0;j<n2;j++) if(mask & (1<<j)) c.push(j);
+        let isWord = true;
+        for(let b=0;b<m2;b++){ let s=0; for(const j of c) s ^= B[b][j]; if(s){ isWord=false; break; } }
+        if(!isWord && seenNonWords++ > 2) continue;     /* a few counterexamples suffice */
+        for(let i=0;i<n1;i++){
+          const v = new Uint8Array(NQ); for(const j of c) v[i*n2+j] = 1;
+          let anti = 0;
+          for(const row of HX){ let s=0; for(let q=0;q<NQ;q++) s ^= row[q] & v[q]; if(s){ anti=1; break; } }
+          if(isWord !== (anti === 0)) logiBad++;
+          if(isWord) found.push(v);
+          tested++;
+        }
+      }
+      const rA = rank2(A), rB = rank2(B);
+      const K = (n1-rA)*(n2-rB) + (m1-rA)*(m2-rB);
+      if(rank2(found) - baseZ !== K) logiBad++;
+    })();
+    /* commutation: every X-stab and Z-stab must share an even number of qubits */
+    for(let i=0;i<n1;i++) for(let b=0;b<m2;b++) for(let a=0;a<m1;a++) for(let j=0;j<n2;j++){
+      const sx = new Set(), sz = new Set();
+      for(let jj=0;jj<n2;jj++) if(B[b][jj]) sx.add('vv:'+i+':'+jj);
+      for(let aa=0;aa<m1;aa++) if(A[aa][i]) sx.add('cc:'+aa+':'+b);
+      for(let ii=0;ii<n1;ii++) if(A[a][ii]) sz.add('vv:'+ii+':'+j);
+      for(let bb=0;bb<m2;bb++) if(B[bb][j]) sz.add('cc:'+a+':'+bb);
+      let n=0; sx.forEach(k => { if(sz.has(k)) n++; });
+      sizes.add(n); if(n%2) bad++;
+    }
+  }));
+  errs = new Map();
+  $('selA').value = saveA; $('selB').value = saveB;
+  rebuild();
+  console.log('checks:', tested, '| failures:', bad, '| mixed X/Z interference:', mixedBad,
+              '| support-vs-syndrome mismatches:', supBad, '| edge-vs-support mismatches:', edgeBad,
+              '| logical-operator mismatches:', logiBad, '| overlap sizes:', [...sizes].sort());
+  return { tested, bad, mixedBad, supBad, edgeBad, logiBad, sizes:[...sizes].sort() };
+};
+
+rebuild();
+</script>
+</main>
+</body>
+</html>

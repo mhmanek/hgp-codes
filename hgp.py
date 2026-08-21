@@ -9,10 +9,10 @@ def hypergraph(H1, H2):
     r2, n2 = H2.shape
     def I(k):
         return np.eye(k, dtype=np.uint8)
-    Hx = np.hstack([np.kron(H1, I(n2)), 
-                    np.kron(I(r1), np.transpose(H2))])
-    Hz = np.hstack([np.kron(I(n1), H2), 
-                    np.kron(np.transpose(H1), I(r2))])
+    Hx = np.hstack([np.kron(np.transpose(H1), I(r2)),
+                    np.kron(I(n1), H2)])
+    Hz = np.hstack([np.kron(I(r1), np.transpose(H2)),
+                    np.kron(H1, I(n2))])
     return Hx, Hz
 
 def check_css(Hx, Hz):
@@ -35,7 +35,7 @@ def rep_code(d):
     return M
 
 def max_stabilizer_weights(Hx, Hz):
-    """Returns the integer values of the maximum weights of X-type stabilizer checks, Z-type stabilizer checks and overall"""
+    """Returns the integer values of the maximum weights of X-type and Z-type stabilizer checks"""
     x_max = Hx.sum(axis=1).max()
     z_max = Hz.sum(axis=1).max()
-    max_weight = max(x_max, z_max)
+    return x_max, z_max

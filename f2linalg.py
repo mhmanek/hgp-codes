@@ -39,8 +39,3 @@ def nullspace(A):
 def in_rowspace(A, v):
     """Is the vector v a linear combination of the rows of A?"""
     return rank(A) == rank(np.vstack([A, v])) # compare rank(A) with rank of (A with v stacked underneath it)
-
-# Tests
-# rng = np.random.default_rng()
-# M = rng.random((20, 30))
-# print(rank(M) + nullspace(M).shape[0])

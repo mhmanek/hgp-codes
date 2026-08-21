@@ -1,7 +1,7 @@
 import numpy as np
 from f2linalg import rank
 
-def hgp(H1, H2):
+def hypergraph(H1, H2):
     """Hypergraph product of two classical codes. Returns (Hx, Hz)."""
     H1 = H1.copy().astype(np.uint8) % 2
     H2 = H2.copy().astype(np.uint8) % 2
@@ -15,16 +15,16 @@ def hgp(H1, H2):
                     np.kron(np.transpose(H1), I(r2))])
     return Hx, Hz
 
+def check_css(Hx, Hz):
+    M = np.matmul(Hx, np.transpose(Hz)) % 2
+    assert not M.any(), "not a valid CSS code"
+
 def css_params(Hx, Hz):
     """Return (n, k) for the CSS code defined by Hx, Hz."""
     assert Hx.shape[1] == Hz.shape[1], "Hx and Hz do not act on the same number of qubits"
     n = Hx.shape[1]
     k = n - rank(Hx) - rank(Hz)
     return n, k
-
-def check_css(Hx, Hz):
-    M = np.matmul(Hx, np.transpose(Hz)) % 2
-    assert not M.any(), "not a valid CSS code"
 
 def rep_code(d):
     """Parity check matrix of the length-d repetition code: (d-1) x d."""
@@ -34,5 +34,8 @@ def rep_code(d):
         M[i, i+1] = 1
     return M
 
-Hx, Hz = hgp(rep_code(4), rep_code(4))
-print(css_params(Hx, Hz))
+def max_stabilizer_weights(Hx, Hz):
+    """Returns the integer values of the maximum weights of X-type stabilizer checks, Z-type stabilizer checks and overall"""
+    x_max = Hx.sum(axis=1).max()
+    z_max = Hz.sum(axis=1).max()
+    max_weight = max(x_max, z_max)

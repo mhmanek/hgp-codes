@@ -5,18 +5,16 @@ What this repository contains:
 
 # Paper Claim Reproductions
 
-(3,4)-regular Tanner graphs of classical LDPC codes
+| $n_{seed}$ | paper | my $n_{qubits}$ | my $k_{qubits}$ | my $d_{HGP}$ | my HGP code |
+|---|---|---|---|---|
+| 12 | [[225, 9, 4]] | 225 | 9 | 6 | [[225, 9, 6]] |
+| 20 | [[625, 25, 6]] | 625 | 25 | 8 | [[625, 25, 8]] |
+| 28 | [[1225, 49, 8]] | 1225 | 49 | 10 | [[1225, 49, 10]] |
+| 40 | [[2500, 100, 12]] | 2500 | 100 | 12 | [[2500, 100, 12]] |
+| 60 | [[5625, 225, 16]] | 5625 | 225 | 14 | [[5625, 225, 14]] |
+| 80 | [[10000, 400, 18]] | 10000 | 400 | 18 | [[10000, 400, 18]] |
 
-| n_{seed} | r_seed | k_seed | k_seed_transpose | best_d | n_qubits | k_qubits | rate_quantum | max_x_weight | max_z_weight |
-| ---: | ---: | ---: | ---: | ---: |
-| 16 | 12 | 4 | 0 | 8 | 400 | 16 | 0.04 | 7 | 7 |
-| 20 | 15 | 5 | 0 | 8 | 625 | 25 | 0.04 | 7 | 7 |
-| 24 | 18 | 6 | 0 | 8 | 900 | 36 | 0.04 | 7 | 7 |
-| 28 | 21 | 7 | 0 | 10 | 1225 | 49 | 0.04 | 7 | 7 |
-| 32 | 24 | 8 | 0 | 10 | 1600 | 64 | 0.04 | 7 | 7 |
-
-n_{seed} is number of bits of seed classical LDPC code
-
+Note: $d_{HGP}$ is minimum of $d_{seed}$ and $d_{seed}^T$, so I checked rank($H_{seed}$) and number of rows of $H_{seed}$ to get $k_{seed}^T$ (which was often 0 implying $d_{seed}^T = \infty$)
 
 
 # Visualization Tool

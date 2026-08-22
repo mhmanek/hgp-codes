@@ -58,82 +58,71 @@ def spectral_gap(H):
     s = np.linalg.svd(H.astype(float), compute_uv=False)
     return float(s[0] - s[1])
 
-
-
 ###
 
-# def regular_seed_girth6(n_bits, rng, wc=3, wr=4, attempts=200):
-#     """A random (wc,wr)-regular seed whose Tanner graph has girth >= 6.
+def regular_seed_girth6(n_bits, rng, wc=3, wr=4, attempts=200):
+    """A random (wc,wr)-regular seed whose Tanner graph has girth >= 6.
 
-#     girth >= 6  <=>  no two bits share more than one check.  We enforce that
-#     edge by edge while building, in the spirit of progressive edge growth:
-#     walk the bits in random order and, for each of its wc edges, connect it to
-#     the least-loaded check that would not close a 4-cycle.
+    girth >= 6 iff no two bits share more than one check.  We enforce that
+    edge by edge while building: walk the bits in random order and, 
+    for each of its wc edges, connect it to
+    the least-loaded check that would not close a 4-cycle."""
 
-#     Why not reject whole graphs, as the naive reading of "rejection sampling"
-#     suggests?  The expected number of 4-cycles in a random (3,4)-regular
-#     bipartite graph is ((wc-1)(wr-1))^2/4 = 9, independent of n, so only about
-#     e^-9 ~ 1 draw in 10^4 is clean -- measured: 1 accepted in 4000 draws at
-#     n=40, 0 in 4000 at every other size.  Edge-level rejection is the only
-#     version that terminates.
-#     """
-#     r = n_bits * wc // wr
-#     for _ in range(attempts):
-#         H       = np.zeros((r, n_bits), dtype=np.uint8)
-#         rowd    = [0] * r                          # bits placed in each check
-#         co      = [set() for _ in range(n_bits)]   # bits sharing a check with b
-#         members = [[] for _ in range(r)]
-#         order   = list(range(n_bits))
-#         rng.shuffle(order)
-#         ok = True
+    r = n_bits * wc // wr
+    for _ in range(attempts):
+        H       = np.zeros((r, n_bits), dtype=np.uint8)
+        rowd    = [0] * r                          # bits placed in each check
+        co      = [set() for _ in range(n_bits)]   # bits sharing a check with b
+        members = [[] for _ in range(r)]
+        order   = list(range(n_bits))
+        rng.shuffle(order)
+        ok = True
 
-#         for b in order:
-#             for _edge in range(wc):
-#                 cand = [c for c in range(r)
-#                         if rowd[c] < wr                     # check not yet full
-#                         and H[c, b] == 0                    # no repeated edge
-#                         and not (co[b] & set(members[c]))]  # no 4-cycle
-#                 if not cand:
-#                     ok = False
-#                     break
-#                 lo = min(rowd[c] for c in cand)             # least-loaded check,
-#                 cand = [c for c in cand if rowd[c] == lo]   # random tie-break
-#                 c = cand[rng.randrange(len(cand))]
+        for b in order:
+            for _edge in range(wc):
+                cand = [c for c in range(r)
+                        if rowd[c] < wr                     # check not yet full
+                        and H[c, b] == 0                    # no repeated edge
+                        and not (co[b] & set(members[c]))]  # no 4-cycle
+                if not cand:
+                    ok = False
+                    break
+                lo = min(rowd[c] for c in cand)             # least-loaded check
+                cand = [c for c in cand if rowd[c] == lo]   # random tie-break
+                c = cand[rng.randrange(len(cand))]
 
-#                 H[c, b] = 1
-#                 for x in members[c]:
-#                     co[x].add(b)
-#                     co[b].add(x)
-#                 members[c].append(b)
-#                 rowd[c] += 1
-#             if not ok:
-#                 break
+                H[c, b] = 1
+                for x in members[c]:
+                    co[x].add(b)
+                    co[b].add(x)
+                members[c].append(b)
+                rowd[c] += 1
+            if not ok:
+                break
 
-#         if ok and all(d == wr for d in rowd):
-#             return H
-#     raise RuntimeError(f"no girth-6 seed at n_bits={n_bits} in {attempts} attempts")
+        if ok and all(d == wr for d in rowd):
+            return H
+    raise RuntimeError(f"no girth-6 seed at n_bits={n_bits} in {attempts} attempts")
 
-# def search(n_bits, draws=1000, seed=0):
-#     """Returns (best_H, record).
+def search(n_bits, draws=1000, seed=0):
+    """Returns (best_H, record).
+    record holds (d, gap, k1, rank) for every accepted draw"""
 
-#     `record` holds every accepted draw's (d, gap, k1, rank) -- the ensemble
-#     distribution is as much the finding as the winner is.
-#     """
-#     rng = random.Random(seed)
-#     record, best_H, best_key = [], None, None
+    rng = random.Random(seed)
+    record, best_H, best_key = [], None, None
 
-#     for _ in range(draws):
-#         H = regular_seed_girth6(n_bits, rng)   # girth >= 6 by construction
-#         assert not has_four_cycle(H)           # cheap independent confirmation
+    for _ in range(draws):
+        H = regular_seed_girth6(n_bits, rng)   # girth >= 6 by construction
+        assert not has_four_cycle(H)           # cheap independent confirmation
 
-#         k1  = nullspace(H).shape[0]
-#         d   = exact_distance(H)
-#         gap = spectral_gap(H)
-#         record.append({"d": d, "gap": gap, "k1": k1, "rank": n_bits - k1})
+        k1  = nullspace(H).shape[0]
+        d   = exact_distance(H)
+        gap = spectral_gap(H)
+        record.append({"d": d, "gap": gap, "k1": k1, "rank": n_bits - k1})
 
-#         key = (d, gap)                         # distance first, gap as tie-break
-#         if best_key is None or key > best_key:
-#             best_key, best_H = key, H
+        key = (d, gap)                         # distance first, gap as tie-break
+        if best_key is None or key > best_key:
+            best_key, best_H = key, H
 
-#     return best_H, record
+    return best_H, record
 

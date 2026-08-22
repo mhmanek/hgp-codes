@@ -6,7 +6,7 @@ What this repository contains:
 # Paper Claim Reproductions
 
 | $n_{seed}$ | paper | my $n_{qubits}$ | my $k_{qubits}$ | my $d_{HGP}$ | my HGP code |
-|---|---|---|---|---|
+|---|---|---|---|---|---|
 | 12 | [[225, 9, 4]] | 225 | 9 | 6 | [[225, 9, 6]] |
 | 20 | [[625, 25, 6]] | 625 | 25 | 8 | [[625, 25, 8]] |
 | 28 | [[1225, 49, 8]] | 1225 | 49 | 10 | [[1225, 49, 10]] |

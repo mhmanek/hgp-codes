@@ -2,7 +2,7 @@ import numpy as np
 from f2linalg import nullspace, rank
 from hgp import hypergraph, check_css, rep_code, css_params, max_stabilizer_weights
 from seeds import regular_seed, best_seed, exact_distance, regular_seed_girth6, search
-from resource import hgp_qubit_count
+from resource import hgp_qubit_count, table1, t_rearrange
 import random
 
 def run_complete_search(n_final):
@@ -23,3 +23,6 @@ def run_complete_search(n_final):
 
 # run_complete_search(12)
 
+# print(table1(180, 2e-5))
+
+print(t_rearrange(100))

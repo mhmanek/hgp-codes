@@ -23,8 +23,7 @@ I am unsure why my results gave a larger distance than the paper in the cases $n
 
 For example, in the case $n_{seed}=12$, the following matrix is a $[12,3,6]$ classical code whose Tanner graph has $\text{girth}=6$, and when we take the HGP with itself, it is easy to check that we indeed get a quantum code with parameters $[[225,9,6]]$. 
 
-\[
-H_{n_{seed}=12} =
+$$H_{n_{seed}=12} =
 \begin{bmatrix}
 0 & 1 & 1 & 0 & 0 & 1 & 0 & 0 & 1 & 0 & 0 & 0 \\
 0 & 0 & 0 & 0 & 1 & 1 & 1 & 0 & 0 & 0 & 0 & 1 \\
@@ -35,8 +34,7 @@ H_{n_{seed}=12} =
 1 & 0 & 1 & 1 & 1 & 0 & 0 & 0 & 0 & 0 & 0 & 0 \\
 0 & 1 & 0 & 1 & 0 & 0 & 0 & 0 & 0 & 0 & 1 & 1 \\
 0 & 0 & 0 & 0 & 1 & 0 & 0 & 0 & 1 & 1 & 1 & 0
-\end{bmatrix}
-\]
+\end{bmatrix}$$
 
 # Visualization Tool
 

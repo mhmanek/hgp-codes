@@ -82,7 +82,7 @@ def table1(k_target, lfr_target, pg=1e-3, d_max=99):
 
     # --- emit markdown ---
     out = [
-        "| k_target | lfr_target | surface d | surface atoms | qLDPC n_s | qLDPC k | qLDPC atoms | saving (x) |",
+        "| k_target | lfr_target | surface d | surface atoms | HGP n_{seed} | HGP k | HGP atoms | saving over surface code (x) |",
         "|---|---|---|---|---|---|---|---|",
     ]
     for k, tgt, d, s_cost, n_s, kb, qc, sv in rows:

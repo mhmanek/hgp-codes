@@ -1,6 +1,10 @@
-This repository reproduces a few claims from the paper "Constant-Overhead Fault-Tolerant Quantum Computation with Reconfigurable Atom Arrays" by Qian Xu, Juan Pablo Bonilla Ataides and others.
+This repository reproduces a the HGP codes from the paper "Constant-Overhead Fault-Tolerant Quantum Computation with Reconfigurable Atom Arrays" by Qian Xu, Juan Pablo Bonilla Ataides and others.
 
-# My Reproduction of the Paper's HGP Codes
+# Procedure
+
+I ran a search for sampling 1000 different (3,4)-regular "seed" classical matrices with Tanner graph girth ≥ 6. From the resulting set, I maximized seed distance and broke ties based on maximum spectral gap. This is exactly the seed-search procedure described in the paper's methods section. I then took the hypergraph product of the resulting matrix with itself. The resulting code parameters are given below.
+
+# Results
 
 | $n_{seed}$ | paper | my $n_{qubits}$ | my $k_{qubits}$ | my $d_{HGP}$ | my HGP code |
 |---|---|---|---|---|---|
@@ -11,9 +15,7 @@ This repository reproduces a few claims from the paper "Constant-Overhead Fault-
 | 60 | [[5625, 225, 16]] | 5625 | 225 | 14 | [[5625, 225, 14]] |
 | 80 | [[10000, 400, 18]] | 10000 | 400 | 18 | [[10000, 400, 18]] |
 
-Notes: I took HGP of a single seed matrix with itself. 
-
-$d_{HGP} = \text{minimum}(d_{seed}, d_{seed}^T)$
+Notes: $d_{HGP} = \text{minimum}(d_{seed}, d_{seed}^T)$
 
 $k_{seed}^T = \text{number of rows of } H_{seed} - \text{rank}(H_{seed})$
 

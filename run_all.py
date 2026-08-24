@@ -22,5 +22,3 @@ def run_complete_search(n_final):
     print(final_seed)
 
 run_complete_search(12)
-
-# print(table1(180, 2e-5))

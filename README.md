@@ -11,7 +11,7 @@ This repository reproduces a few claims from the paper "Constant-Overhead Fault-
 | 60 | [[5625, 225, 16]] | 5625 | 225 | 14 | [[5625, 225, 14]] |
 | 80 | [[10000, 400, 18]] | 10000 | 400 | 18 | [[10000, 400, 18]] |
 
-Note: I took HGP of a single seed matrix with itself. $d_{HGP}$ is the minimum of $d_{seed}$ and $d_{seed}^T$. I computed $k_{seed}^T = number of rows of H_{seed} - rank(H_{seed})$. In every case, the seed matrix was full-rank, i.e., $k_{seed}^T =0$, implying $d_{seed}^T = \infty$ and giving $d_{HGP} = d_{seed}$.
+Note: I took HGP of a single seed matrix with itself. $d_{HGP}$ is the minimum of $d_{seed}$ and $d_{seed}^T$. I computed $k_{seed}^T = \text{number of rows of } H_{seed} - \text{rank}(H_{seed})$. In every case, the seed matrix was full-rank, i.e., $k_{seed}^T =0$, implying $d_{seed}^T = \infty$ and giving $d_{HGP} = d_{seed}$.
 
 
 # Visualization Tool

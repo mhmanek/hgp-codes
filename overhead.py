@@ -6,7 +6,7 @@ def surface_cost(d, k_wanted):
     """Physical qubits for k_wanted logical qubits at distance d, surface code."""
     one_patch_cost = 2*(d**2) - 2*d + 1
     k_cost = k_wanted * one_patch_cost
-    return k_cost
+    return k_cost 
 
 def hgp_cost(n_qubits, k_block, k_wanted):
     """Physical qubits for k_wanted logical qubits using blocks of this HGP code."""

@@ -16,7 +16,7 @@ def row_reduce(A):
                 pivots.append(c) # append the column index to pivots
                 r += 1
                 break
-    return(A, pivots)
+    return(A, pivots) 
 
 def rank(A):
     return len(row_reduce(A)[1]) # the rank is just how many pivots row_reduce found

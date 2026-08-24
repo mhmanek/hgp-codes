@@ -13,16 +13,14 @@ def run_complete_search(n_final):
     rank_final = rank(final_seed)
 
     print(final_Hx.shape[0], final_Hz.shape[0])
-
     print("n =", css_params(final_Hx, final_Hz)[0])
     print("k =", css_params(final_Hx, final_Hz)[1])
     print("distance of seed =", exact_distance(final_seed))
     print("rank of seed =", rank(final_seed))
     print("row count of seed =", row_count_final)
     print("k^T =", row_count_final - rank_final)
+    print(final_seed)
 
-# run_complete_search(12)
+run_complete_search(12)
 
 # print(table1(180, 2e-5))
-
-print(t_rearrange(100))

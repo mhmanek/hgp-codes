@@ -1,0 +1,4 @@
+{
+  "outputDirectory": ".",
+  "rewrites": [{ "source": "/", "destination": "/hgp-visualisation.html" }]
+}

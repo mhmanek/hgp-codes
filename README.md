@@ -1,9 +1,6 @@
-# hgp-codes
-What this repository contains:
-1. Code files that reproduce claims from the paper "Constant-overhead fault-tolerant quantum computation with reconfigurable atom arrays"
-2. An html tool for visualizing hypergraph product codes
+This repository reproduces a few claims from the paper "Constant-Overhead Fault-Tolerant Quantum Computation with Reconfigurable Atom Arrays" by Qian Xu, Juan Pablo Bonilla Ataides and others.
 
-# Paper Claim Reproductions
+# My Reproduction of the Paper's HGP Codes
 
 | $n_{seed}$ | paper | my $n_{qubits}$ | my $k_{qubits}$ | my $d_{HGP}$ | my HGP code |
 |---|---|---|---|---|---|
@@ -14,9 +11,9 @@ What this repository contains:
 | 60 | [[5625, 225, 16]] | 5625 | 225 | 14 | [[5625, 225, 14]] |
 | 80 | [[10000, 400, 18]] | 10000 | 400 | 18 | [[10000, 400, 18]] |
 
-Note: $d_{HGP}$ is minimum of $d_{seed}$ and $d_{seed}^T$, so I checked rank($H_{seed}$) and number of rows of $H_{seed}$ to get $k_{seed}^T$ (which was often 0 implying $d_{seed}^T = \infty$)
+Note: I took HGP of a single seed matrix with itself. $d_{HGP}$ is the minimum of $d_{seed}$ and $d_{seed}^T$. I computed $k_{seed}^T = number of rows of H_{seed} - rank(H_{seed})$. In every case, the seed matrix was full-rank, i.e., $k_{seed}^T =0$, implying $d_{seed}^T = \infty$ and giving $d_{HGP} = d_{seed}$.
 
 
 # Visualization Tool
 
-I saw [this talk](https://www.youtube.com/watch?v=MqGBwQjS4CI) which explains qLDPC codes and presents an animation to visualize hypergraph product codes.
+I saw [this talk](https://www.youtube.com/watch?v=MqGBwQjS4CI) which explains qLDPC codes and presents an animation to visualize hypergraph product codes. The file hgp-visualisation.html replicates the visual animation presented in the talk, and is a good way to develop intuition for the HGP.

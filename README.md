@@ -38,4 +38,4 @@ $$H_{12} =
 
 # Visualization Tool
 
-I saw [this talk](https://www.youtube.com/watch?v=MqGBwQjS4CI) which explains qLDPC codes and presents an animation to visualize hypergraph product codes. The file hgp-visualisation.html replicates the visual animation presented in the talk, and is a good way to develop intuition for the HGP.
+I saw [this talk](https://www.youtube.com/watch?v=MqGBwQjS4CI) which explains qLDPC codes and presents an animation to visualize hypergraph product codes. The file [hgp-visualisation.html](https://hgp-codes.vercel.app/) replicates the visual animation presented in the talk, and is a good way to develop intuition for the HGP.
